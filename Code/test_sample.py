@@ -21,7 +21,6 @@ def seed_everything(seed):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--load_model", "-lm", type=str, default="")
     parser.add_argument("--transform", "-t", type=str, default=None)
@@ -31,6 +30,8 @@ if __name__ == "__main__":
 
     run_path = find_run_path(args.load_model, toplogdir="./logs")
     config_path = find_config(run_path)
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     if config_path == None:
         print("Config path not found")
@@ -44,6 +45,8 @@ if __name__ == "__main__":
 
     # Load model
     generator = get_from_cfg(cfg_gen)
+    generator.eval()
+    generator.to(device)
 
     generator_state_path = os.path.join(run_path, cfg_gen["NAME"] + ".pt")
     generator.load_state_dict(torch.load(generator_state_path))
