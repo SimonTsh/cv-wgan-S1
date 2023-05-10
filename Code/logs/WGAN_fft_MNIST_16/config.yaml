@@ -1,0 +1,97 @@
+DATASET:
+  NAME: MNIST #  MNIST or SAR or PIPO
+  PARAMETERS:
+    batch_size: 128
+    transform: "fft_shift"
+    num_workers: 8
+
+TRAIN:
+  EPOCH: 2000
+
+  MODE:
+    NAME : "TrainerWGAN"
+    PARAMETERS:
+      n_iterations_disc: 4
+      gp_weight: 10
+
+  LOGGING:
+    TOP_LOG_DIR: "./logs"
+    RUN_NAME: "WGAN_fft_MNIST"
+    MIN_EPOCH_CKP: 0
+    STEP_CKP: 3
+    TRANSFORM_IMAGE: "inverse_fft"
+    N_IMAGES: 16
+    WANDB:
+      entity: "sargan"
+      project: "cei_complex_gan"
+  
+  LOSS:
+    NAME:  # MeanComplexLoss #, AbsComplexLoss
+ 
+  OPTIMIZER_GENERATOR:
+    NAME: "Adam"
+    PARAMETERS:
+      lr: 3.0e-5
+      weight_decay: 0
+      betas:
+        - 0.5
+        - 0.9
+
+  OPTIMIZER_DISCRIMINATOR:
+    NAME: "Adam"
+    PARAMETERS:
+      lr: 3.0e-5
+      weight_decay: 0
+      betas:
+        - 0.5
+        - 0.9
+  
+  LR_SCHEDULER:
+    NAME: ""
+    PARAMETERS:
+
+DISCRIMINATOR:
+  NAME:
+    "CNN_Discriminator"
+  PARAMETERS:
+    # Number of layers of the DCNN
+    num_conv_layers: 5
+    # Multiplicator of the channels for the successive convolutional layers
+    channels_multiplicator: 2
+    # Apply pooling every <step_pooling> layers
+    step_pooling: 1
+    # Maximum number of channels for the convolutional layers
+    max_channels: 128
+    # Number of filter of the initial Convolutional Layer
+    num_filter: 32
+    # Min spatial size in the convolution layers
+    min_spatial_size: 8
+    kernel_size_conv: 3
+    stride_conv: 1
+    padding_conv: 1
+    batch_norm: False
+    activation: "CELU" 
+
+GENERATOR:
+  NAME:
+    "CNN_Generator"
+  PARAMETERS:
+    # Output channels of the generator
+    output_channels: 1
+    # Latent space dimension
+    latent_dim: 128
+    # Number of layers of the DCNN
+    num_conv_layers: 4
+    # Multiplicator of the channels for the successive convolutional layers
+    channels_multiplicator: 1
+    # Apply upsample convolution every <step_upsample> layers
+    step_upsample: 1
+    # Number of filter of the initial Convolutional Layer
+    num_filter: 64
+    # Size of the first 2D image in the first layer
+    size_first: 4
+    kernel_size_conv: 3
+    stride_conv: 1
+    padding_conv: 1
+    batch_norm: False
+    activation: "CELU"
