@@ -21,6 +21,6 @@ python -m pip install -r requirements.txt
 3- Execute the sampling and interpolation script
 
 ```
-python test_sample.py --load_model WGAN_fft_MNIST_16
+python test_sample.py --load_model WGAN_fft_MNIST_16 --transform inverse_fft_contrast_enhanced
 python test_sample.py --load_model SAR_WGAN_28 
 ```
