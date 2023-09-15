@@ -1,3 +1,4 @@
+import argparse
 import torch
 import os
 import random
@@ -22,9 +23,10 @@ def seed_everything(seed):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--load_model", "-lm", type=str, default="")
-    parser.add_argument("--transform", "-t", type=str, default=None)
+    parser.add_argument("--load_model", "-lm", type=str, default="", required=True)
+    parser.add_argument("--transform", "-t", type=str, default="")
     parser.add_argument("-n", type=int, default=8)
+    parser.add_argument("-ncircle_factor", type=int, default=5)
     parser.add_argument("-seed", type=int, default=123)
     args = parser.parse_args()
 
@@ -33,7 +35,7 @@ if __name__ == "__main__":
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    if config_path == None:
+    if config_path is None:
         print("Config path not found")
         exit(1)
 
@@ -56,13 +58,17 @@ if __name__ == "__main__":
     print(f"Saving figures at {saving_path}")
 
     test = EvaluationGenerator(generator, saving_path)
-    transform = eval(args.transform) if args.transform != None else None
+    transform = eval(args.transform) if args.transform != "" else None
 
-    seed_everything(args.seed)
-    test.interpolate(args.n, transform=transform)
+    with torch.no_grad():
+        print("3 corners interpolation")
+        seed_everything(args.seed)
+        test.interpolate(args.n, transform=transform)
 
-    seed_everything(args.seed)
-    test.interpolate_circle(args.n, transform=transform)
+        print("Rotation interpolation")
+        seed_everything(args.seed)
+        test.interpolate_circle(args.n * args.ncircle_factor, transform=transform)
 
-    seed_everything(args.seed)
-    test.plot(args.n, transform=transform, save_points=True)
+        print("Draw some independent random samples")
+        seed_everything(args.seed)
+        test.plot(args.n, transform=transform, save_points=True)
