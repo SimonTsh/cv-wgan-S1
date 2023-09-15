@@ -7,6 +7,7 @@ import torch
 import numpy as np
 from torch.utils.data import Dataset, ConcatDataset
 from torchvision.datasets import DatasetFolder
+from torchvision.utils import make_grid, save_image
 
 try:
     from .transform import *

@@ -1,3 +1,4 @@
+from pathlib import Path
 import torch
 import torchvision
 import argparse
@@ -15,7 +16,8 @@ except:
     from dataset import SAR_DatasetFolder, SAR_DatasetRaw
 
 
-def get_MNIST_dataloader(
+def get_MNISTLike_dataloader(
+    dataset_builder,
     batch_size: int,
     transform,
     length: int = -1,
@@ -25,15 +27,15 @@ def get_MNIST_dataloader(
     if isinstance(transform, str):
         transform = eval(transform)
 
-    MNIST_dataset = torchvision.datasets.MNIST(
-        root="Data/", download=True, train=True, transform=transform
-    )
-    MNIST_valid_dataset = torchvision.datasets.MNIST(
-        root="Data/", download=True, train=False, transform=transform
+    root = Path.home() / "Datasets"
+
+    dataset = dataset_builder(root=root, download=True, train=True, transform=transform)
+    valid_dataset = dataset_builder(
+        root=root, download=True, train=False, transform=transform
     )
 
     train_dataloader = torch.utils.data.DataLoader(
-        MNIST_dataset,
+        dataset,
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_workers,
@@ -41,7 +43,7 @@ def get_MNIST_dataloader(
         drop_last=True,
     )
     valid_dataloader = torch.utils.data.DataLoader(
-        MNIST_valid_dataset,
+        valid_dataset,
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_workers,
@@ -49,6 +51,78 @@ def get_MNIST_dataloader(
         drop_last=True,
     )
     return train_dataloader, valid_dataloader
+
+
+def get_EMNIST_dataloader(
+    batch_size: int,
+    transform,
+    length: int = -1,
+    num_workers: int = 8,
+    pin_memory: bool = True,
+):
+    if isinstance(transform, str):
+        transform = eval(transform)
+    dataset_builder = torchvision.datasets.EMNIST
+
+    root = Path.home() / "Datasets"
+    dataset = dataset_builder(
+        root=root, download=True, train=True, transform=transform, split="byclass"
+    )
+    valid_dataset = dataset_builder(
+        root=root, download=True, train=False, transform=transform, split="byclass"
+    )
+
+    train_dataloader = torch.utils.data.DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        drop_last=True,
+    )
+    valid_dataloader = torch.utils.data.DataLoader(
+        valid_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        drop_last=True,
+    )
+    return train_dataloader, valid_dataloader
+
+
+def get_FashionMNIST_dataloader(
+    batch_size: int,
+    transform,
+    length: int = -1,
+    num_workers: int = 8,
+    pin_memory: bool = True,
+):
+    return get_MNISTLike_dataloader(
+        torchvision.datasets.FashionMNIST,
+        batch_size,
+        transform,
+        length,
+        num_workers,
+        pin_memory,
+    )
+
+
+def get_MNIST_dataloader(
+    batch_size: int,
+    transform,
+    length: int = -1,
+    num_workers: int = 8,
+    pin_memory: bool = True,
+):
+    return get_MNISTLike_dataloader(
+        torchvision.datasets.MNIST,
+        batch_size,
+        transform,
+        length,
+        num_workers,
+        pin_memory,
+    )
 
 
 def get_SAR_dataloader(
@@ -199,23 +273,23 @@ if __name__ == "__main__":
     from logs import hsv_colorscale
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--nrow", "-n", type=int, default=8)
+    parser.add_argument("--nrow", "-n", type=int, default=5)
     parser.add_argument(
         "--data_path",
         "-d",
         type=str,
         default="/mounts/Datasets3/2022-SONDRA/raw_data_2x8/",
     )
-    parser.add_argument("--transform", "-t", type=str, default="to_db_complex")
-    parser.add_argument("--size", "-s", type=int, default=128)
+    parser.add_argument("--transform", "-t", type=str, default=None)
+    parser.add_argument("--size", "-s", type=int, default=256)
     parser.add_argument("--suffix", "-sf", type=str, default="")
-    parser.add_argument("--saving_path", "-sv", type=str, default="./logs/_data/")
+    parser.add_argument("--saving_path", "-sv", type=str, default="./logs/")
     args = parser.parse_args()
 
     transform = eval(args.transform) if args.transform != None else None
 
     if args.data_path == "MNIST":
-        dataloader = get_MNIST_dataloader(
+        train_dataloader, valid_dataloader = get_MNIST_dataloader(
             batch_size=args.nrow * args.nrow,
             transform=transform,
             num_workers=8,
@@ -224,15 +298,19 @@ if __name__ == "__main__":
         )
 
     else:
-        dataloader = get_SAR_dataloader(
-            data_path=args.data_path,
+        train_dataloader, valid_dataloader = get_SAR_dataloader(
+            train_datapath=args.data_path + "/train/",
+            valid_datapath=args.data_path + "/valid/",
             transform=transform,
             subsample_factor=1,
             image_size=args.size,
             batch_size=args.nrow * args.nrow,
+            stride=20,
             num_workers=0,
             pin_memory=True,
         )
+
+    dataloader = train_dataloader
 
     images = dataloader_info(dataloader)
 
@@ -244,11 +322,12 @@ if __name__ == "__main__":
     )
 
     grid_abs = make_grid(images.abs(), nrow=args.nrow, scale_each=True)
+    save_image(grid_abs, f"{args.saving_path}data_abs{args.suffix}.png")
+
     grid_angle = make_grid(images.angle(), nrow=args.nrow, scale_each=True)
+    save_image(grid_angle, f"{args.saving_path}data_angle{args.suffix}.png")
+
     grid_hsv = make_grid(
         hsv_colorscale(images.squeeze()), nrow=args.nrow, scale_each=True
     )
-
-    save_image(grid_abs, f"{args.saving_path}data_abs{args.suffix}.png")
-    save_image(grid_angle, f"{args.saving_path}data_angle{args.suffix}.png")
     save_image(grid_hsv, f"{args.saving_path}data_hsv{args.suffix}.png")

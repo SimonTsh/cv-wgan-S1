@@ -4,6 +4,7 @@ import numpy as np
 import wandb
 import shutil
 from torchvision.utils import make_grid
+from skimage import exposure
 
 N_IMAGES = 64
 
@@ -389,17 +390,26 @@ def hsv_to_rgb_torch(hsv):
 def hsv_colorscale(img):
     # Calculate magnitude and phase of the image
     # https://www.jedsoft.org/fun/complex/fztopng.html according to this
-    mag = (img.abs()+1).log()
+    if isinstance(img, torch.Tensor):
+        np_img = img.numpy()
+    else:
+        np_img = img
+    np_mag = np.log(np.abs(np_img) + 1)
+    p2, p98 = np.percentile(np_mag, (2, 98))
+    np_mag = exposure.rescale_intensity(np_mag, in_range=(p2, p98))
+
+    mag = torch.from_numpy(np_mag)
+
     phase = img.angle()
 
     # Normalize magnitude to [0,1] range
-    mag_norm = (mag - torch.min(mag)) / (torch.max(mag) - torch.min(mag))
+    # mag_norm = (mag - torch.min(mag)) / (torch.max(mag) - torch.min(mag))
 
     # Convert phase to [0,1] range
     phase_norm = (phase + torch.pi) / (2 * torch.pi)
 
     # Convert to HSV format
-    hsv_image = torch.stack([phase_norm, mag/2 + 0.5, mag], dim=-1)
+    hsv_image = torch.stack([phase_norm, mag / 2 + 0.5, mag], dim=-1)
 
     rgb = hsv_to_rgb_torch(hsv_image)
 
@@ -432,6 +442,7 @@ def find_run_path(load_model, toplogdir):
 
 
 def find_config(run_path):
+    print(f"Looking for configs in {run_path}")
     config_file = [fn for fn in os.listdir(run_path) if ".yaml" in fn]
 
     if len(config_file) == 1:

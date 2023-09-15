@@ -56,20 +56,21 @@ class EvaluationGenerator:
             latent_edges[0] + grid_x * latent_vectors_1 + grid_y * latent_vectors_2
         ).view(-1, self.latent_dim)
 
-        generated_img = self.generator.from_noise(points)
-        generated_img = (
-            logs.hsv_colorscale(generated_img).squeeze()
-            if generated_img.dtype == torch.complex64
-            else generated_img
-        )
+        with torch.no_grad():
+            if transform is not None:
+                generated_img = transform(self.generator.from_noise(points))
+                img = make_grid(generated_img, nrow=N, scale_each=True)
+                self._save_image(img, FIGURE_NAME)
+            else:
+                generated_img = self.generator.from_noise(points).cpu()
+                generated_img = (
+                    logs.hsv_colorscale(generated_img).squeeze()
+                    if generated_img.dtype == torch.complex64
+                    else generated_img
+                )
 
-        img = make_grid(generated_img, nrow=N, scale_each=True)
-        self._save_image(img, FIGURE_NAME + "_raw")
-
-        if transform != None:
-            generated_img = transform(self.generator.from_noise(points))
-            img = make_grid(generated_img, nrow=N, scale_each=True)
-            self._save_image(img, FIGURE_NAME)
+                img = make_grid(generated_img, nrow=N, scale_each=True)
+                self._save_image(img, FIGURE_NAME + "_raw")
 
         return img
 
@@ -84,20 +85,21 @@ class EvaluationGenerator:
 
         points = latent_edges * torch.exp(t * 1j)
 
-        generated_img = self.generator.from_noise(points)
-        generated_img = (
-            logs.hsv_colorscale(generated_img).squeeze()
-            if generated_img.dtype == torch.complex64
-            else generated_img
-        )
-
-        img = make_grid(generated_img, nrow=N, scale_each=True)
-        self._save_image(img, FIGURE_NAME + "_raw")
-
-        if transform != None:
+        if transform is not None:
             generated_img = transform(self.generator.from_noise(points))
             img = make_grid(generated_img, nrow=int(math.sqrt(N)), scale_each=True)
             self._save_image(img, FIGURE_NAME)
+
+        else:
+            generated_img = self.generator.from_noise(points).cpu()
+            generated_img = (
+                logs.hsv_colorscale(generated_img).squeeze()
+                if generated_img.dtype == torch.complex64
+                else generated_img
+            )
+
+            img = make_grid(generated_img, nrow=int(math.sqrt(N)), scale_each=True)
+            self._save_image(img, FIGURE_NAME + "_raw")
 
         return img
 
@@ -114,20 +116,20 @@ class EvaluationGenerator:
 
         points = latent_edges * torch.abs(t_abs) * torch.exp(t_phase * 1j)
 
-        generated_img = self.generator.from_noise(points)
-        generated_img = (
-            logs.hsv_colorscale(generated_img).squeeze()
-            if generated_img.dtype == torch.complex64
-            else generated_img
-        )
-
-        img = make_grid(generated_img, nrow=N, scale_each=True)
-        self._save_image(img, FIGURE_NAME + "_raw")
-
-        if transform != None:
+        if transform is not None:
             generated_img = transform(self.generator.from_noise(points))
             img = make_grid(generated_img, nrow=N, scale_each=True)
             self._save_image(img, FIGURE_NAME)
+        else:
+            generated_img = self.generator.from_noise(points).cpu()
+            generated_img = (
+                logs.hsv_colorscale(generated_img).squeeze()
+                if generated_img.dtype == torch.complex64
+                else generated_img
+            )
+
+            img = make_grid(generated_img, nrow=N, scale_each=True)
+            self._save_image(img, FIGURE_NAME + "_raw")
 
         return img
 
@@ -138,24 +140,23 @@ class EvaluationGenerator:
         FIGURE_NAME = "sampled"
 
         latent_points = torch.randn(N * N, self.latent_dim, dtype=self.dtype)
-
-        generated_img = self.generator.from_noise(latent_points)
-        generated_img = (
-            logs.hsv_colorscale(generated_img).squeeze()
-            if generated_img.dtype == torch.complex64
-            else generated_img
-        )
-
-        img = make_grid(generated_img, nrow=N, scale_each=True)
-        self._save_image(img, FIGURE_NAME + "_raw")
-
-        if transform != None:
-            generated_img = transform(self.generator.from_noise(latent_points))
-            img = make_grid(generated_img, nrow=N, scale_each=True)
-            self._save_image(img, FIGURE_NAME)
-
         if save_points:
             points_path = self.saving_path + "points_sampled"
             torch.save(latent_points, points_path)
+
+        if transform is not None:
+            generated_img = transform(self.generator.from_noise(latent_points))
+            img = make_grid(generated_img, nrow=N, scale_each=True)
+            self._save_image(img, FIGURE_NAME)
+        else:
+            generated_img = self.generator.from_noise(latent_points).cpu()
+            generated_img = (
+                logs.hsv_colorscale(generated_img).squeeze()
+                if generated_img.dtype == torch.complex64
+                else generated_img
+            )
+
+            img = make_grid(generated_img, nrow=N, scale_each=True)
+            self._save_image(img, FIGURE_NAME + "_raw")
 
         return img, latent_points
