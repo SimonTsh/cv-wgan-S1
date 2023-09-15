@@ -22,5 +22,6 @@ python -m pip install -r requirements.txt
 
 ```
 python test_sample.py --load_model WGAN_fft_MNIST_16 --transform inverse_fft_contrast_enhanced
+python test_sample.py --load_model WGAN_fft_FashionMNIST_2 --transform inverse_fft_contrast_enhanced
 python test_sample.py --load_model SAR_WGAN_28 
 ```
