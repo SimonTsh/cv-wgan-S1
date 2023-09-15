@@ -25,3 +25,14 @@ python test_sample.py --load_model WGAN_fft_MNIST_16 --transform inverse_fft_con
 python test_sample.py --load_model WGAN_fft_FashionMNIST_2 --transform inverse_fft_contrast_enhanced
 python test_sample.py --load_model SAR_WGAN_28 
 ```
+
+4- Computes the FIDs
+
+```
+python utils/fid.py  --load_model WGAN_fft_MNIST_16 --postprocess ifft --fold train
+python utils/fid.py  --load_model WGAN_fft_MNIST_16 --postprocess ifft --fold test
+python utils/fid.py  --load_model WGAN_fft_FashionMNIST_2 --postprocess ifft --fold train
+python utils/fid.py  --load_model WGAN_fft_FashionMNIST_2 --postprocess ifft --fold test
+python utils/fid.py  --load_model SAR_WGAN_28 --postprocess "None" --fold train
+python utils/fid.py  --load_model SAR_WGAN_28 --postprocess "None" --fold test
+```
