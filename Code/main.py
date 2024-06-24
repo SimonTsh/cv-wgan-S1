@@ -1,4 +1,5 @@
 from utils.generator import CNN_Generator
+from utils.discrimator import CNN_Discriminator
 
 
 def get_from_cfg(cfg_dict: dict, param=None):
