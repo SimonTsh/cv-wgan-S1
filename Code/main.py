@@ -1,3 +1,6 @@
+from utils.generator import CNN_Generator
+
+
 def get_from_cfg(cfg_dict: dict, param=None):
     """
     Return item from config dictionary.
