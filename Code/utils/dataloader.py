@@ -13,7 +13,7 @@ try:
     from .dataset import SAR_DatasetFolder, SAR_DatasetRaw, SAR_DatasetNpy
 except:
     from transform import *
-    from dataset import SAR_DatasetFolder, SAR_DatasetRaw
+    from dataset import SAR_DatasetFolder, SAR_DatasetRaw, SAR_DatasetNpy
 
 
 def get_MNISTLike_dataloader(

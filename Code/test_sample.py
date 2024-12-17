@@ -23,14 +23,14 @@ def seed_everything(seed):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--load_model", "-lm", type=str, default="", required=True)
+    parser.add_argument("--load_model", "-lm", type=str, default="SAR_WGAN_28")#, required=True)
     parser.add_argument("--transform", "-t", type=str, default="")
     parser.add_argument("-n", type=int, default=8)
     parser.add_argument("-ncircle_factor", type=int, default=5)
     parser.add_argument("-seed", type=int, default=123)
     args = parser.parse_args()
 
-    run_path = find_run_path(args.load_model, toplogdir="./logs")
+    run_path = find_run_path(args.load_model, toplogdir="Code/logs")#./logs")
     config_path = find_config(run_path)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"

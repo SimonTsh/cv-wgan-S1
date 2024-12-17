@@ -6,6 +6,7 @@ import argparse
 
 # External imports
 from torchinfo import summary
+from torchview import draw_graph
 import torch
 
 # Local imports
@@ -26,6 +27,8 @@ def get_generator_info(config, device):
     zdim = generator.latent_dim
     print(f"Latent dimension: {zdim}")
     summary(generator, input_size=(1, zdim), device=device, dtypes=[torch.complex64])
+    # model_graph = draw_graph(generator, input_size=(1, zdim), expand_nested=True)
+    # model_graph.visual_graph
 
 
 def get_discriminator_info(config, device, image_size, input_channels):
@@ -49,16 +52,18 @@ def get_discriminator_info(config, device, image_size, input_channels):
         device=device,
         dtypes=[torch.complex64],
     )
+    # model_graph = draw_graph(discriminator, input_size=(1, input_channels, image_size, image_size), expand_nested=True)
+    # model_graph.visual_graph
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--load_model", "-lm", type=str, default="", required=True)
+    parser.add_argument("--load_model", "-lm", type=str, default="SAR_WGAN_28")#, required=True)
     parser.add_argument("--image_size", type=int, default=32)
     parser.add_argument("--input_channels", type=int, default=1)
     args = parser.parse_args()
 
-    run_path = find_run_path(args.load_model, toplogdir="./logs")
+    run_path = find_run_path(args.load_model, toplogdir="Code/logs")#"./logs")
     config_path = find_config(run_path)
 
     device = "cpu"

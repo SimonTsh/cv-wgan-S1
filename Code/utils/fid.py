@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
+from torchsummary import summary
 
 from fid_compute_statistics import evaluate_fid
 from config import load_config
@@ -97,10 +98,10 @@ def compute_fid(
     fold: str,
     gen: nn.Module,
     postprocess_str,
-    mode="clean",
+    # mode="clean",
     z_dim=128,
     batch_size=128,
-    run_test=False,
+    run_test=True,#False,
     dataset_parameters=None,
 ):
     """
@@ -127,7 +128,7 @@ def compute_fid(
         if dataset_name in ["MNIST", "FashionMNIST", "EMNIST"]:
             return x
         elif dataset_name == "SAR":
-            # Both data from the dataset and generatedd ata
+            # Both data from the dataset and generated data
             # are complex, we take the magnitude of them
             return x.abs()
 
@@ -160,16 +161,17 @@ def test(dataset, gen, z_dim, device):
     """
 
     print("Run the FID test")
-    N = 10
-    fig, axes = plt.subplots(nrows=2, ncols=N, figsize=(5, 1))
+    N = 3 #10
+    fig, axes = plt.subplots(nrows=2, ncols=N)#, figsize=(5, 1))
 
     def post_process_sample(X):
-        return (X * 255).clip(0, 255).permute(1, 2, 0).numpy().astype(np.uint8)
+        return (X * 255).clip(0, 255).permute(1, 2, 0)#.numpy().astype(np.uint8)
 
-    # Let us take real samples
-    # and save them as an image
+    # Let us take real samples and save them as an image
+    dataset = dataset.dataset # assumes data_loader is created from a dataset
     for iax, axi in enumerate(axes[0]):
         X, _ = dataset[iax]
+        X = X.abs()
         print(
             f"Real sample : bounds=[{X.min()}, {X.max()}], shape ={X.shape}, dtype={X.dtype}"
         )
@@ -177,14 +179,34 @@ def test(dataset, gen, z_dim, device):
         axi.imshow(X, cmap="gray")
         axi.set_axis_off()
 
-    # Let us generate fake samples
-    # and save them as an image as well
+    # Let us generate fake samples and save them as an image as well
     # print(x_gen.max(), x_gen.min(), x_gen.shape)
     with torch.no_grad():
+        # input = dataset.datasets[0].raw_image.to(device) # noise.shape = N x z_dim = 2 x 512 for eg
+        # row, col = input.shape
+        # Xgen = gen((input[row // 2 - N // 2 : row // 2 + N // 2, \
+        #             col // 2 - z_dim // 2 : col // 2 + z_dim // 2])).cpu() # transform.fft_shift_tensor
         noise = torch.randn(N, z_dim, dtype=torch.complex64).to(device)
         Xgen = gen(noise).cpu()
+
     for iax, axi in enumerate(axes[1]):
         X = Xgen[iax]
+
+        # check generated patch statistics
+        fig1, ax = plt.subplots(1,2)
+        X_f = np.fft.fftshift(np.fft.fft2(X.squeeze())) # freq
+        X = X.abs()
+        hist, bin_edges = np.histogram(X.squeeze().flatten()) # hist
+        print(f'hist sum = {hist.sum()}, {np.sum(hist * np.diff(bin_edges))}')
+        ax[0].imshow(np.abs(X_f),cmap='gray')
+        ax[0].set_title('fft output')
+        ax[1].hist(X.squeeze().flatten(),bins='auto')
+        ax[1].set_title('hist output')
+        plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.5)
+        fig1.savefig("Code/logs/fid_analysis.png", dpi=300)
+        plt.close()
+        
+        # save generated (abs) image
         print(
             f"Generated sample : bounds=[{X.min()}, {X.max()}], shape ={X.shape}, dtype={X.dtype}"
         )
@@ -193,23 +215,22 @@ def test(dataset, gen, z_dim, device):
         axi.set_axis_off()
 
     plt.suptitle("Top: real; Bottom: generated")
-    plt.tight_layout(pad=0.1, w_pad=0.1, h_pad=0.1)
-    # plt.subplots_adjust(wspace=0, hspace=0)
-    plt.savefig("fid_test.png")
+    plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.5)
+    plt.subplots_adjust(wspace=0, hspace=0)
+    plt.savefig("Code/logs/fid_test.png", dpi=300)
+    plt.close()
     print("fid_test.png saved")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--load_model", "-lm", type=str, required=True)
-    parser.add_argument(
-        "--postprocess", "-p", choices=["ifft", "None"], type=str, required=True
-    )
-    parser.add_argument("--test", "-t", action="store_true")
-    parser.add_argument("--fold", "-f", choices=["train", "test"], required=True)
+    parser.add_argument("--load_model", "-lm", type=str, default="SAR_WGAN_28")#, required=True)
+    parser.add_argument("--postprocess", "-p", choices=["ifft", "None"], type=str, default="None")#, required=True)
+    parser.add_argument("--test", "-t", action="store_true", default="store_true")
+    parser.add_argument("--fold", "-f", choices=["train", "test"], default="test")#, required=True)
     args = parser.parse_args()
 
-    run_path = find_run_path(args.load_model, toplogdir="./logs")
+    run_path = find_run_path(args.load_model, toplogdir="Code/logs") #"./logs")
     config_path = find_config(run_path)
 
     if not config_path:
@@ -228,14 +249,19 @@ if __name__ == "__main__":
 
     # Load model
     generator = get_from_cfg(cfg_gen)
-
     generator_state_path = os.path.join(run_path, cfg_gen["NAME"] + ".pt")
     generator.load_state_dict(torch.load(generator_state_path))
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        device = "cuda"
+    else:
+        device = "cpu"
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(device)
 
     generator = generator.to(device)
+
     score = compute_fid(
         dataset_name=config["DATASET"]["NAME"],
         fold=args.fold,
@@ -247,4 +273,4 @@ if __name__ == "__main__":
         dataset_parameters=cfg_data["PARAMETERS"],
     )
 
-    print(f"FID = {score}")
+    print(f"FID = {score}") # FID = Run1: 95.82718742133738; Run 2: 95.28351811571854

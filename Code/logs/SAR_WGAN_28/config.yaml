@@ -1,8 +1,8 @@
 DATASET:
   NAME: SAR
   PARAMETERS:
-    train_datapath: "/gpfs/workdir/fix_jer/Datasets/2022-SONDRA/raw_data_2x8/train/" 
-    valid_datapath:  # "/gpfs/workdir/fix_jer/Datasets/2022-SONDRA/raw_data_2x8/valid/" 
+    train_datapath: "Code/npy/train/" # "/gpfs/workdir/fix_jer/Datasets/2022-SONDRA/raw_data_2x8/train/" 
+    valid_datapath: "Code/npy/train/" # "/gpfs/workdir/fix_jer/Datasets/2022-SONDRA/raw_data_2x8/valid/" 
     batch_size: 25
     transform: "to_db_complex"
     subsample_factor: 1
