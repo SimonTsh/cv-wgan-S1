@@ -1,6 +1,5 @@
-# Complex-valued Wasserstein GAN for SAR Images generation
-
-This repository provides the inference code as well as pretrained networks for our paper. 
+# Complex-valued Wasserstein GAN for Sentinel-1 Image Superresolution
+Complex-WGAN network adapted from https://github.com/jeremyfix/complex-wgan.git and modified for Sentinel-1 superresolution purpose. This repository provides the inference code as well as pretrained networks for the complex-wgan paper. 
 
 To test inferences, you can proceed by 
 
