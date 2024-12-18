@@ -37,6 +37,18 @@ def win_patch(image, window_size, center_x, center_y):
 
     return window
 
+def grid_patch_extraction(image, patch_size, overlap=0):
+    h, w = image.shape[:2]
+    patch_h, patch_w = patch_size
+    stride_h = patch_h - overlap
+    stride_w = patch_w - overlap
+    patches = []
+    for y in range(0, h - patch_h + 1, stride_h):
+        for x in range(0, w - patch_w + 1, stride_w):
+            patch = image[y:y+patch_h, x:x+patch_w]
+            patches.append(patch)
+    return patches
+
 def filter_2d(data_fft, radius, type): #boundary): # sigma_s):
     ny, nx = data_fft.shape
     freq_x = np.fft.fftfreq(nx)

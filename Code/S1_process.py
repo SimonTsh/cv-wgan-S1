@@ -4,6 +4,7 @@ from PIL import Image
 from tifffile import imread
 from zipfile import ZipFile
 
+import pickle
 import numpy as np
 import cv2
 
@@ -11,7 +12,7 @@ from skimage import exposure
 from scipy import interpolate, optimize
 
 import matplotlib.pyplot as plt
-from utils.patch_process import gaussian, win_patch, filter_2d
+from utils.patch_process import gaussian, win_patch, filter_2d, grid_patch_extraction
 
 def fit_curve(x, img):
     # coeff = np.polyfit(x, img_cut_abs_log, 2) # quadratic
@@ -47,9 +48,10 @@ def draw_rectangle(x, y):
 
 working_dir = 'Code/data'
 npy_dir = 'Code/npy'
-action = 2 # 1: unzip, 2: display
+action = 1 # 0: unzip downloaded data, 1: display unzipped data
+patch_making = 0; # 0: only analysis, 1: create pickle dataset
 
-if action == 1:
+if action == 0:
     zipfile_id = ['6cd73e73-a10f-4598-b07b-f6018f53ef04']
     for zipfile in zipfile_id:
         with ZipFile(f'{working_dir}/{zipfile}.zip', 'r') as zip_ref:
@@ -59,7 +61,7 @@ if action == 1:
         except OSError as e:
             print(f"Error deleting file: {e}")
 
-elif action == 2:
+elif action == 1:
     folder_ids = glob.glob(f'{working_dir}/*.SAFE') # multi image processing
     # folder_id = 'S1A_S3_SLC__1SDH_20241120T213604_20241120T213629_056643_06F2DA_965E.SAFE' #'S1A_S6_SLC__1SDV_20241125T214410_20241125T214439_056716_06F5C2_86D5.SAFE'
     for folder_id in folder_ids:
@@ -72,7 +74,17 @@ elif action == 2:
             # tiff_image = imread(f'{working_dir}/{folder_id}/measurement/{item}') # single image
             tiff_image = imread(f'{folder_id}/measurement/{item}') # multi image processing
 
-            # Save as PNG; image storage
+            if patch_making:
+                patch_size = [256]*2
+                overlap_px = 50
+                patches = grid_patch_extraction(tiff_image, patch_size, overlap_px)
+                with open(f'{working_dir}/{file_name}.pickle', 'wb') as file:
+                    pickle.dump(patches,file)
+                print(f'Patches from {file_name} saved as dataset successfully...')
+                
+                break
+            
+            # Save as PNG --> image storage
             ## S3
             # SM (urban): [20000:26000,500:7500]
             # SM (ship): [2000:6000,2500:7500]
