@@ -115,8 +115,9 @@ class CNN_Generator(nn.Module):
         )
 
     def forward(self, z):
-        if z.dtype != torch.complex64 and z.shape[-1] == 2:
-            z = torch.view_as_complex(z)
+        if z.dtype != torch.complex64: # and z.shape[-1] == 2:
+            z = z.to(dtype=torch.complex64)
+            # z = torch.view_as_complex(z)
 
         z = self.input_layer(z).view(
             -1, self.num_filter, self.size_first, self.size_first
@@ -125,14 +126,14 @@ class CNN_Generator(nn.Module):
         z = self.out_layer(z)
         return z
 
-    def generate(self, batch_size: int = 1):
-        device = next(self.parameters()).device
-        noise = torch.randn(batch_size, self.latent_dim, dtype=self.dtype).to(device)
-        return self(noise)
+    # def generate(self, batch_size: int = 1):
+    #     device = next(self.parameters()).device
+    #     noise = torch.randn(batch_size, self.latent_dim, dtype=self.dtype).to(device)
+    #     return self(noise)
 
-    def from_noise(self, noise):
-        device = next(self.parameters()).device
-        return self(noise.to(device))
+    # def from_noise(self, noise):
+    #     device = next(self.parameters()).device
+    #     return self(noise.to(device))
 
 
 def get_generator_from_config(cfg_gen: dict):
@@ -161,7 +162,7 @@ if __name__ == "__main__":
     generator.to(args.device)
 
     ### Test
-    img = generator.generate(2)
-    print("Output shape", img.shape)
+    # img = generator.generate(2)
+    # print("Output shape", img.shape)
 
     summary(generator, (1, cfg_gen["PARAMETERS"]["latent_dim"], 2), device=args.device)

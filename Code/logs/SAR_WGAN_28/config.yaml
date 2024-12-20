@@ -88,7 +88,7 @@ GENERATOR:
     # Output channels of the generator
     output_channels: 1
     # Latent space dimension
-    latent_dim: 512
+    latent_dim: 256 #512
     # Number of layers of the DCNN
     num_conv_layers: 8
     # Multiplicator of the channels for the successive convolutional layers
@@ -96,7 +96,7 @@ GENERATOR:
     # Apply upsample convolution every <step_upsample> layers
     step_upsample: 1
     # Number of filter of the initial Convolutional Layer
-    num_filter: 512
+    num_filter: 256 # 512
     # Size of the first 2D image in the first layer
     size_first: 2
     kernel_size_conv: 3

@@ -98,20 +98,21 @@ class CNN_Discriminator(nn.Module):
         self.model = nn.Sequential(*self.conv_layers, *self.fc_layers)
 
     def forward(self, z):
-        if z.dtype != torch.complex64 and z.shape[-1] == 2:
-            z = torch.view_as_complex(z)
+        if z.dtype != torch.complex64: # and z.shape[-1] == 2:
+            z = z.to(dtype=torch.complex64)
+            # z = torch.view_as_complex(z)
 
         return (self.model(z).real).to(
             dtype=self.dtype
         )  # Last activation in loss function
 
 
-def get_discriminator_from_config(cfg_disc: dict):
+def get_discriminator_from_config(cfg_disc: dict, input_channel=1):
     """
     Return a discriminator from a yaml configuration file (loaded as a dict).
     """
     discriminator = eval(cfg_disc["NAME"])(
-        dtype=torch.complex64, **cfg_disc["PARAMETERS"]
+        dtype=torch.complex64, **cfg_disc["PARAMETERS"], input_channels=input_channel
     )
     return discriminator
 

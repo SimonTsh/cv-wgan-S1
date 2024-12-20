@@ -50,11 +50,11 @@ def grid_patch_extraction(image, patch_size, overlap=0):
     return patches
 
 def filter_2d(data_fft, radius, type): #boundary): # sigma_s):
-    ny, nx = data_fft.shape
+    num, ny, nx = data_fft.shape
     freq_x = np.fft.fftfreq(nx)
     freq_y = np.fft.fftfreq(ny)
     freq_x, freq_y = np.meshgrid(np.fft.fftshift(freq_x), np.fft.fftshift(freq_y))
-    
+
     if type == 'circle':
         # circular filter
         mask = np.sqrt(freq_x**2 + freq_y**2) <= radius
@@ -71,5 +71,8 @@ def filter_2d(data_fft, radius, type): #boundary): # sigma_s):
     else:
         KeyError('Not known crop function')
 
-    filtered_fft = data_fft * mask
+    filtered_fft = np.zeros([num, ny, nx], dtype=np.complex64)
+    for i in range(num):
+        filtered_fft[i] = data_fft[i] * mask
+
     return filtered_fft, mask

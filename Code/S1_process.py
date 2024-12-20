@@ -33,6 +33,13 @@ def get_3dB_res(x, IPF):
 
     return width_3dB
 
+def downres_generation(img_patch, radius, mtd='rect'):
+    img_patch_f = np.fft.fftshift(np.fft.fft2(img_patch))
+    img_filter_f, mask_f = filter_2d(img_patch_f, radius, mtd)
+    img_filter = np.fft.ifft2(np.fft.ifftshift(img_filter_f))
+
+    return img_patch_f, img_filter_f, img_filter
+
 def draw_rectangle(x, y):
     global img
     # Define the rectangle size
@@ -49,7 +56,7 @@ def draw_rectangle(x, y):
 working_dir = 'Code/data'
 npy_dir = 'Code/npy'
 action = 1 # 0: unzip downloaded data, 1: display unzipped data
-patch_making = 0; # 0: only analysis, 1: create pickle dataset
+patch_making = 1; # 0: only analysis, 1: create pickle dataset
 
 if action == 0:
     zipfile_id = ['6cd73e73-a10f-4598-b07b-f6018f53ef04']
@@ -75,11 +82,14 @@ elif action == 1:
             tiff_image = imread(f'{folder_id}/measurement/{item}') # multi image processing
 
             if patch_making:
-                patch_size = [256]*2
-                overlap_px = 50
-                patches = grid_patch_extraction(tiff_image, patch_size, overlap_px)
+                patch_size = 256
+                overlap_px = 10 # 50
+                downsample_fac = 4
+                patches_HR = grid_patch_extraction(tiff_image, [patch_size]*2, overlap_px)
+                #win_patch(patches_HR, patch_size, patch_size//2, patch_size//2)
+                patches_HR_f, img_LR_f, patches_LR = downres_generation(patches_HR, patch_size / downsample_fac, 'rect')
                 with open(f'{working_dir}/{file_name}.pickle', 'wb') as file:
-                    pickle.dump(patches,file)
+                    pickle.dump([patches_HR, patches_LR], file)
                 print(f'Patches from {file_name} saved as dataset successfully...')
                 
                 break
@@ -133,15 +143,12 @@ elif action == 1:
             # pad_size = np.array(img_patch.shape) - np.array(filter.shape)
             # filter_pad = np.pad(filter, ((0, pad_size[0]), (0, pad_size[1])), mode='constant')
             # filter_pad_f = np.fft.fft2(filter_pad)
-
-            img_patch_f = np.fft.fftshift(np.fft.fft2(img_patch))
-            axes[0,1].imshow(np.abs(img_patch_f),cmap='gray')
-
-            upsample_factor = 3
+            upsample_factor = 4
             radius = window_size / upsample_factor #0.6 #[-0.35, 0.35, -0.35, 0.35]
-            img_filter_f, mask_f = filter_2d(img_patch_f, radius, 'rect') #img_patch_f * filter_pad_f
+
+            img_patch_f, img_filter_f, img_filter = downres_generation(img_patch, radius, 'rect')
+            axes[0,1].imshow(np.abs(img_patch_f),cmap='gray')
             axes[1,1].imshow(np.abs(img_filter_f),cmap='gray')
-            img_filter = np.fft.ifft2(np.fft.ifftshift(img_filter_f))
             axes[1,0].imshow(10*np.log10(np.abs(img_filter)+tiny_e),cmap='gray')
             # axes[0,2].imshow(np.abs(mask_f),cmap='gray')
             plt.tight_layout()
@@ -154,6 +161,7 @@ elif action == 1:
             img_cut_fit_3dBwidth = get_3dB_res(x_up, 10*np.log10(img_cut_abs / np.max(img_cut_abs))) #img_cut_fit
             print(f"The 3dB resolution (bef) is: {img_cut_fit_3dBwidth}")
             
+            # extract range cut
             img_cut_filter = img_filter[cut_x,:]
             img_cut_filter_up = interpolate.interp1d(x, img_cut_filter, kind='quadratic')(x_up)
             
@@ -163,6 +171,7 @@ elif action == 1:
             img_filter_fit_3dBwidth = get_3dB_res(x_up, 10*np.log10(img_filter_abs / np.max(img_filter_abs))) #img_filter_fit
             print(f"The 3dB resolution (aft) is: {img_filter_fit_3dBwidth}")
 
+            # visualise
             fig, axes = plt.subplots(1,2, dpi=300)
             axes[0].plot(x_up,10*np.log10(img_cut_abs / np.max(img_cut_abs)),label='IPF')
             axes[0].title.set_text(f'original IPF \n(res = {img_cut_fit_3dBwidth:.3f}m)')
