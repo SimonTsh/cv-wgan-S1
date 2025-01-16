@@ -59,12 +59,12 @@ action = 1 # 0: unzip downloaded data, 1: display unzipped data
 patch_making = 1; # 0: only analysis, 1: create pickle dataset
 
 if action == 0:
-    zipfile_id = ['6cd73e73-a10f-4598-b07b-f6018f53ef04']
+    zipfile_id = glob.glob(f'{working_dir}/*.zip') # ['6cd73e73-a10f-4598-b07b-f6018f53ef04.zip']
     for zipfile in zipfile_id:
-        with ZipFile(f'{working_dir}/{zipfile}.zip', 'r') as zip_ref:
+        with ZipFile(f'{working_dir}/{zipfile}', 'r') as zip_ref:
             zip_ref.extractall(working_dir)
         try:
-            os.remove(f'{working_dir}/{zipfile}.zip') # Delete the original ZIP file
+            os.remove(f'{working_dir}/{zipfile}') # Delete the original ZIP file
         except OSError as e:
             print(f"Error deleting file: {e}")
 

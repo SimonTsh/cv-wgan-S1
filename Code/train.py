@@ -107,7 +107,7 @@ if __name__ == "__main__":
 
     ### Load input data
     working_dir = 'Code/data'
-    file_name = 's1a-s3-slc-hh-20241108t213605-20241108t213629-056468-06ebd0-001'
+    file_name = 's1a-s6-slc-vh-20241125t214410-20241125t214439-056716-06f5c2-001' # 's1a-s3-slc-hh-20241108t213605-20241108t213629-056468-06ebd0-001'
     with open(f'{working_dir}/{file_name}.pickle', 'rb') as file:
         dataset = pickle.load(file)
     print(f'Dataset {file_name} loaded successfully...')
