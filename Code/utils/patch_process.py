@@ -1,4 +1,5 @@
 import numpy as np
+from skimage import exposure
 
 def sinfunc(t, A, w, p, c):
     return A * np.sin(w * t + p) + c
@@ -19,6 +20,16 @@ def lorentzian(x, a, b, c, d):
     return a / (1 + ((x - b) / c)**2) + d
 
 
+def display_img(tiff_image):
+    tiny_e = 1e-15
+    tiff_image_abs = np.abs(tiff_image)
+    tiff_image_norm = (tiff_image_abs - tiff_image_abs.min()) / (tiff_image_abs.max() - tiff_image_abs.min())  # rescale between 0 and 1
+    p2, p98 = np.percentile(tiff_image_norm, (2, 98))
+    tiff_image_rescale = exposure.rescale_intensity(tiff_image_norm, in_range=(p2, p98))
+    rescale_img = 10*np.log10(tiff_image_rescale + tiny_e) # (tiff_image_rescale * 255).astype(np.uint8)
+
+    return rescale_img
+    
 def win_patch(image, window_size, center_x, center_y):
     # Calculate the start and end coordinates for the window
     start_x = center_x - window_size // 2

@@ -3,6 +3,8 @@ import yaml
 import pickle
 
 import numpy as np
+import matplotlib.pyplot as plt
+
 from tqdm import tqdm
 from utils.generator import get_generator_from_config
 from utils.discrimator import get_discriminator_from_config
@@ -12,6 +14,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.autograd import grad
+
+from utils.patch_process import display_img
 
 # Assuming you have the generator and discriminator models defined
 class WGAN_GP:
@@ -112,8 +116,24 @@ if __name__ == "__main__":
         dataset = pickle.load(file)
     print(f'Dataset {file_name} loaded successfully...')
 
-    cut_samples = 1 # to reduce memory usage for debug; still insuffient GPU memory
-    data_loader = DataLoader(np.array(dataset)[:,:cut_samples,:,:], num_workers=0, batch_size=args.batch_size, shuffle=True)
+    # Analyse input array
+    dataset = np.array(dataset)
+    num_samples = dataset.shape[1]
+    cut_init = (num_samples // 2) - 3
+    cut_samples = 3 # to reduce memory usage for debug; still insuffient GPU memory
+    dataset_cut = dataset[:,cut_init:cut_init+cut_samples,:,:]
+
+    fig, axes = plt.subplots(2, 3, figsize=(15, 12))
+    axes_flat = axes.flatten()
+    for i, ax in enumerate(axes_flat):
+        ax.imshow(10*np.log10(np.abs(dataset_cut[i//3, i%3, :, :])+1), cmap='gray')
+        ax.axis('off')  # Turn off axis labels
+
+    plt.tight_layout()
+    plt.savefig(f'{working_dir}/{file_name}_dataExample.png', dpi=300)
+
+    # Input data into dataloader
+    data_loader = DataLoader(dataset_cut, num_workers=0, batch_size=args.batch_size, shuffle=True)
     del dataset
     
     # Training loop
