@@ -119,14 +119,15 @@ if __name__ == "__main__":
     # Analyse input array
     dataset = np.array(dataset)
     num_samples = dataset.shape[1]
+    print(f'Dataset {file_name} has {num_samples} patches')
     cut_init = (num_samples // 2) - 3
-    cut_samples = 3 # to reduce memory usage for debug; still insuffient GPU memory
+    cut_samples = 1 # 3 # to reduce memory usage for debug; still insuffient GPU memory
     dataset_cut = dataset[:,cut_init:cut_init+cut_samples,:,:]
 
-    fig, axes = plt.subplots(2, 3, figsize=(15, 12))
+    fig, axes = plt.subplots(2, cut_samples, figsize=(15, 12))
     axes_flat = axes.flatten()
     for i, ax in enumerate(axes_flat):
-        ax.imshow(10*np.log10(np.abs(dataset_cut[i//3, i%3, :, :])+1), cmap='gray')
+        ax.imshow(10*np.log10(np.abs(dataset_cut[i//cut_samples, i%cut_samples, :, :])+1), cmap='gray')
         ax.axis('off')  # Turn off axis labels
 
     plt.tight_layout()
