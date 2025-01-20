@@ -50,15 +50,15 @@ class WGAN_GP:
             self.optimizer_D.zero_grad()
 
             # Sample real and fake data
-            real_data = data_HR.to(self.device)
-            z = data_LR.to(self.device)
-            fake_data = self.generator(z)
+            real_data = data_HR.to(self.device) # 1x256x256
+            z = data_LR.to(self.device) # 1x256x256
+            fake_data = self.generator(z) # 256x1x256x256
             # noise = torch.randn(batch_size, self.generator.latent_dim, dtype=torch.complex64).to(self.device)
             # fake_data = self.generator(noise)
 
             # Compute critic loss
-            d_real = self.discriminator(real_data).mean()
             d_fake = self.discriminator(fake_data).mean()
+            d_real = self.discriminator(real_data).mean()
             gp = self.gradient_penalty(real_data, fake_data)
             d_loss = d_fake - d_real + self.lambda_gp * gp
 
@@ -88,7 +88,8 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", "-e", type=int, default=100)
 
     args = parser.parse_args()
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu") # for debugging
 
     ### Load config
     with open(args.config, "r") as ymlfile:
@@ -120,7 +121,7 @@ if __name__ == "__main__":
     for epoch in range(args.epochs):
         train_bar = tqdm(data_loader)
         for batch_idx, (data_HR, data_LR) in enumerate(train_bar):
-            data_HR, data_LR = data_HR.unsqueeze(1), data_LR.unsqueeze(1)
+            # data_HR, data_LR = data_HR.unsqueeze(1), data_LR.unsqueeze(1)
             wgan_gp.train(data_HR, data_LR)
             if batch_idx % 100 == 0:
                 print(f"Epoch {epoch+1}, Batch {batch_idx+1}, G Loss: {wgan_gp.g_loss.item()}, D Loss: {wgan_gp.d_loss.item()}")
