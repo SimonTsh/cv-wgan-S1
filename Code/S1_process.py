@@ -8,11 +8,10 @@ import pickle
 import numpy as np
 import cv2
 
-from skimage import exposure
 from scipy import interpolate, optimize
 
 import matplotlib.pyplot as plt
-from utils.patch_process import gaussian, win_patch, filter_2d, grid_patch_extraction
+from utils.patch_process import gaussian, win_patch, filter_2d, grid_patch_extraction, display_img
 
 def fit_curve(x, img):
     # coeff = np.polyfit(x, img_cut_abs_log, 2) # quadratic
@@ -59,12 +58,12 @@ action = 1 # 0: unzip downloaded data, 1: display unzipped data
 patch_making = 1; # 0: only analysis, 1: create pickle dataset
 
 if action == 0:
-    zipfile_id = ['6cd73e73-a10f-4598-b07b-f6018f53ef04']
+    zipfile_id = glob.glob(f'{working_dir}/*.zip') # ['6cd73e73-a10f-4598-b07b-f6018f53ef04.zip']
     for zipfile in zipfile_id:
-        with ZipFile(f'{working_dir}/{zipfile}.zip', 'r') as zip_ref:
+        with ZipFile(f'{working_dir}/{zipfile}', 'r') as zip_ref:
             zip_ref.extractall(working_dir)
         try:
-            os.remove(f'{working_dir}/{zipfile}.zip') # Delete the original ZIP file
+            os.remove(f'{working_dir}/{zipfile}') # Delete the original ZIP file
         except OSError as e:
             print(f"Error deleting file: {e}")
 
@@ -83,7 +82,7 @@ elif action == 1:
 
             if patch_making:
                 patch_size = 256
-                overlap_px = 10 # 50
+                overlap_px = 0 # 10 # 50
                 downsample_fac = 4
                 patches_HR = grid_patch_extraction(tiff_image, [patch_size]*2, overlap_px)
                 #win_patch(patches_HR, patch_size, patch_size//2, patch_size//2)
@@ -111,12 +110,7 @@ elif action == 1:
             np.save(f'{npy_dir}/train/{file_name}.npy', tiff_image_crop) # save for further processing
 
             # For display
-            tiny_e = 1e-15
-            tiff_image_abs = 10*np.log10(np.abs(tiff_image_crop)+tiny_e)
-            tiff_image_norm = (tiff_image_abs - tiff_image_abs.min()) / (tiff_image_abs.max() - tiff_image_abs.min())  # rescale between 0 and 1
-            p2, p98 = np.percentile(tiff_image_norm, (2, 98))
-            tiff_image_rescale = exposure.rescale_intensity(tiff_image_norm, in_range=(p2, p98))
-            img = (tiff_image_rescale * 255).astype(np.uint8)
+            img = display_img(tiff_image_crop)
             Image.fromarray(img).save(f'{working_dir}/images/{file_name}.png')
 
             # Method 1: patch by predefined center pixel
@@ -143,6 +137,7 @@ elif action == 1:
             # pad_size = np.array(img_patch.shape) - np.array(filter.shape)
             # filter_pad = np.pad(filter, ((0, pad_size[0]), (0, pad_size[1])), mode='constant')
             # filter_pad_f = np.fft.fft2(filter_pad)
+            tiny_e = 1 # 1e-15 # 
             upsample_factor = 4
             radius = window_size / upsample_factor #0.6 #[-0.35, 0.35, -0.35, 0.35]
 
