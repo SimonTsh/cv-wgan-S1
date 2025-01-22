@@ -70,13 +70,13 @@ DISCRIMINATOR:
     # Apply pooling every <step_pooling> layers
     step_pooling: 1
     # Maximum number of channels for the convolutional layers
-    max_channels: 512
+    max_channels: 256 #512
     # Number of filter of the initial Convolutional Layer
     num_filter: 32
     # Min spatial size in the convolution layers
     min_spatial_size: 4
     kernel_size_conv: 3
-    stride_conv: 1
+    stride_conv: 5 #1
     padding_conv: 1
     batch_norm: False
     activation: "CELU" 
@@ -86,7 +86,7 @@ GENERATOR:
     "CNN_Generator"
   PARAMETERS:
     # Output channels of the generator
-    output_channels: 1
+    output_channels: 256 #1
     # Latent space dimension
     latent_dim: 256 #512
     # Number of layers of the DCNN
@@ -94,7 +94,7 @@ GENERATOR:
     # Multiplicator of the channels for the successive convolutional layers
     channels_multiplicator: 0.8
     # Apply upsample convolution every <step_upsample> layers
-    step_upsample: 1
+    step_upsample: 4 #1
     # Number of filter of the initial Convolutional Layer
     num_filter: 256 # 512
     # Size of the first 2D image in the first layer

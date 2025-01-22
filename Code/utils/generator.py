@@ -117,6 +117,7 @@ class CNN_Generator(nn.Module):
     def forward(self, z):
         if z.dtype != torch.complex64: # and z.shape[-1] == 2:
             z = z.to(dtype=torch.complex64)
+            z = z.mT # 1x256x256 -> 256x256x1
             # z = torch.view_as_complex(z)
 
         z = self.input_layer(z).view(
@@ -147,7 +148,7 @@ def get_generator_from_config(cfg_gen: dict):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", "-cfg", type=str, default="./config/config.yaml")
+    parser.add_argument("--config", "-cfg", type=str, default="Code/logs/SAR_WGAN_28/config.yaml") #"./config/config.yaml")
     parser.add_argument("--device", "-d", type=str, default="cpu")
 
     args = parser.parse_args()

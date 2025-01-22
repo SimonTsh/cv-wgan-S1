@@ -26,7 +26,7 @@ class CNN_Discriminator(nn.Module):
         padding_conv: int = 1,
         batch_norm: bool = False,
         activation: str = "modReLU",
-        image_size: int = 32,
+        image_size: int = 256, #32,
         min_spatial_size: int = 8,
         dtype=torch.complex64,
         name: str = "CNN_Discriminator",
@@ -82,8 +82,8 @@ class CNN_Discriminator(nn.Module):
         ### FULLY CONNECTED BLOCK
 
         dummy_tensor = torch.rand(
-            2, input_channels, image_size, image_size, dtype=dtype
-        )
+            input_channels, image_size, image_size, dtype=dtype
+        ) # 4 x 256 x 256, complex64
         dummy_conv_model = nn.Sequential(*self.conv_layers, *self.fc_layers)
         out = dummy_conv_model(dummy_tensor)
         conv_size = out.shape[-1]
@@ -98,16 +98,18 @@ class CNN_Discriminator(nn.Module):
         self.model = nn.Sequential(*self.conv_layers, *self.fc_layers)
 
     def forward(self, z):
-        if z.dtype != torch.complex64: # and z.shape[-1] == 2:
+        if z.dtype != torch.complex64:
             z = z.to(dtype=torch.complex64)
             # z = torch.view_as_complex(z)
+        elif z.dim() == 4:
+            z = z.permute(0,2,1,3)
 
         return (self.model(z).real).to(
             dtype=self.dtype
-        )  # Last activation in loss function
+        )
 
 
-def get_discriminator_from_config(cfg_disc: dict, input_channel=1):
+def get_discriminator_from_config(cfg_disc: dict, input_channel=4): # 1
     """
     Return a discriminator from a yaml configuration file (loaded as a dict).
     """
