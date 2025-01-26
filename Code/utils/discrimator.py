@@ -87,10 +87,10 @@ class CNN_Discriminator(nn.Module):
         dummy_conv_model = nn.Sequential(*self.conv_layers, *self.fc_layers)
         out = dummy_conv_model(dummy_tensor)
         conv_size = out.shape[-1]
-        num_features = out.shape[1]
+        num_features = out.shape[1] # out.shape[0]
 
         self.fc_layers.append(C_AvgPool2d(conv_size, 1, 0))
-        self.fc_layers.append(nn.Flatten())
+        # self.fc_layers.append(nn.Flatten())
         self.fc_layers.append(nn.Linear(num_features, 1, dtype=dtype))
         self.fc_layers.append(Mod())
 
@@ -101,15 +101,14 @@ class CNN_Discriminator(nn.Module):
         if z.dtype != torch.complex64:
             z = z.to(dtype=torch.complex64)
             # z = torch.view_as_complex(z)
-        elif z.dim() == 4:
-            z = z.permute(0,2,1,3)
+        
+        if z.dim() == 4 and z.size(1) != self.input_channels:
+            z = z.permute(2,3,0,1)
 
-        return (self.model(z).real).to(
-            dtype=self.dtype
-        )
+        return (self.model(z).real).to(dtype=self.dtype)
 
 
-def get_discriminator_from_config(cfg_disc: dict, input_channel=4): # 1
+def get_discriminator_from_config(cfg_disc: dict, input_channel=1): # 4
     """
     Return a discriminator from a yaml configuration file (loaded as a dict).
     """
@@ -121,9 +120,9 @@ def get_discriminator_from_config(cfg_disc: dict, input_channel=4): # 1
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", "-cfg", type=str, default="./config/config.yaml")
+    parser.add_argument("--config", "-cfg", type=str, default="Code/logs/SAR_WGAN_28/config.yaml") # default="./config/config.yaml")
     parser.add_argument("--device", "-d", type=str, default="cpu")
-    parser.add_argument("--img_size", "-s", type=int, default=64)
+    parser.add_argument("--img_size", "-s", type=int, default=256) # 64
 
     args = parser.parse_args()
 
@@ -141,7 +140,7 @@ if __name__ == "__main__":
 
     # Test
     discriminator.to(args.device)
-    x = torch.rand(2, 1, img_size, img_size, dtype=torch.complex64).to(args.device)
+    x = torch.rand(1, img_size, img_size, dtype=torch.complex64).to(args.device)
     y = discriminator(x)
 
-    summary(discriminator, (1, img_size, img_size, 2), device=args.device)
+    summary(discriminator, (1, img_size, img_size), device=args.device)

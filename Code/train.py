@@ -1,3 +1,4 @@
+import os
 import argparse
 import yaml
 import pickle
@@ -15,23 +16,23 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.autograd import grad
 
-from utils.patch_process import display_img
-
 # Assuming you have the generator and discriminator models defined
 class WGAN_GP:
-    def __init__(self, generator, discriminator, device, lambda_gp=10, critic_iterations=5):
+    def __init__(self, generator, discriminator, device, g_loss, d_loss, lambda_gp=10, critic_iterations=5):
         self.generator = generator
         self.discriminator = discriminator
         self.device = device
         self.lambda_gp = lambda_gp
         self.critic_iterations = critic_iterations
+        self.g_loss = g_loss
+        self.d_loss = d_loss
 
         # Optimizers
         self.optimizer_G = optim.Adam(self.generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
         self.optimizer_D = optim.Adam(self.discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
 
     def gradient_penalty(self, real_data, fake_data):
-        alpha = torch.rand((real_data.size(0), 1, 1, 1), device=self.device)
+        alpha = torch.rand((real_data.size(0), 1, 1), device=self.device)
         alpha = alpha.expand_as(real_data)
         interpolates = alpha * real_data + ((1 - alpha) * fake_data)
         interpolates.requires_grad = True
@@ -56,18 +57,27 @@ class WGAN_GP:
             # Sample real and fake data
             real_data = data_HR.to(self.device) # 1x256x256
             z = data_LR.to(self.device) # 1x256x256
-            fake_data = self.generator(z) # 256x1x256x256
+            fake_data = self.generator(z) # 256x1x256x256 -> 1x256x256; should be 1x64x64 so can upsample x4
             # noise = torch.randn(batch_size, self.generator.latent_dim, dtype=torch.complex64).to(self.device)
             # fake_data = self.generator(noise)
 
             # Compute critic loss
-            d_fake = self.discriminator(fake_data).mean()
-            d_real = self.discriminator(real_data).mean()
+            d_fake = self.discriminator(fake_data).mean() # input: 4x4x256x256 --> output as 1x256x256
+            d_real = self.discriminator(real_data).mean() # input: 1x256x256
             gp = self.gradient_penalty(real_data, fake_data)
-            d_loss = d_fake - d_real + self.lambda_gp * gp
+            self.d_loss = d_fake - d_real + self.lambda_gp * gp
 
             # Backpropagate and optimize
-            d_loss.backward()
+            # d_loss.backward()
+            params = [p for p in self.discriminator.parameters() if p.requires_grad]
+            grads = torch.autograd.grad(self.d_loss, params, create_graph=True, retain_graph=True)
+
+            for param, grad in zip(params, grads):
+                param.data = param.data.contiguous()
+                
+                param.grad = grad # manually set gradients for each parameter in order to retain graph
+                if param.grad is not None:
+                    param.grad.data = param.grad.data.contiguous()
             self.optimizer_D.step()
 
         # Train Generator
@@ -78,16 +88,16 @@ class WGAN_GP:
         # fake_data = self.generator(noise)
 
         # Compute generator loss
-        g_loss = -self.discriminator(fake_data).mean()
+        self.g_loss = -self.discriminator(fake_data).mean()
 
         # Backpropagate and optimize
-        g_loss.backward()
+        self.g_loss.backward()
         self.optimizer_G.step()
 
 # Example usage
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", "-cfg", type=str, default="Code/logs/SAR_WGAN_28/config.yaml")
+    parser.add_argument("--config", "-cfg", type=str, default=f"{os.getcwd()}/Code/logs/SAR_WGAN_28/config.yaml") # /Code
     parser.add_argument("--batch_size", "-bs", type=int, default=32)
     parser.add_argument("--epochs", "-e", type=int, default=100)
 
@@ -102,44 +112,57 @@ if __name__ == "__main__":
     ### Generator and Discriminator
     cfg_gen = cfg["GENERATOR"]
     cfg_disc = cfg["DISCRIMINATOR"]
+    cfg_epoch = cfg["TRAIN"]["EPOCH"]
     generator = get_generator_from_config(cfg_gen)
     discriminator = get_discriminator_from_config(cfg_disc)
+    g_loss = 0
+    d_loss = 0
 
     generator.to(device)
     discriminator.to(device)
 
-    wgan_gp = WGAN_GP(generator, discriminator, device)
+    wgan_gp = WGAN_GP(generator, discriminator, device, g_loss, d_loss)
 
     ### Load input data
-    working_dir = 'Code/data'
-    file_name = 's1a-s6-slc-vh-20241125t214410-20241125t214439-056716-06f5c2-001' # 's1a-s3-slc-hh-20241108t213605-20241108t213629-056468-06ebd0-001' #
+    working_dir = f'{os.getcwd()}/Code/data' # /Code
+    file_name = 's1a-s3-slc-hh-20241108t213605-20241108t213629-056468-06ebd0-001' #'s1a-s6-slc-vh-20241125t214410-20241125t214439-056716-06f5c2-001' # 
     with open(f'{working_dir}/{file_name}.pickle', 'rb') as file:
         dataset = pickle.load(file)
     print(f'Dataset {file_name} loaded successfully...')
 
     # Analyse input array
-    dataset = np.array(dataset)
-    num_samples = dataset.shape[1]
+    # dataset = np.array(dataset)
+    data_HR = np.array(dataset[0])
+    data_LR = np.array(dataset[1])
+    num_samples = data_HR.shape[0]
     print(f'Dataset {file_name} has {num_samples} patches')
-    cut_init = (num_samples // 2) - 3
-    cut_samples = 1 # 3 # to reduce memory usage for debug; still insuffient GPU memory
-    dataset_cut = dataset[:,cut_init:cut_init+cut_samples,:,:]
+    del dataset
 
+    # to display
+    cut_init = (num_samples // 2) - 3
+    cut_samples = 3 # to reduce memory usage for debug; still insuffient GPU memory
+    # dataset_cut = dataset[:,cut_init:cut_init+cut_samples,:,:]
+    data_HR_cut = data_HR[cut_init:cut_init+cut_samples,:,:]
+    data_LR_cut = data_LR[cut_init:cut_init+cut_samples,:,:]
+
+    tiny_e = 1
     fig, axes = plt.subplots(2, cut_samples, figsize=(15, 12))
     axes_flat = axes.flatten()
     for i, ax in enumerate(axes_flat):
-        ax.imshow(10*np.log10(np.abs(dataset_cut[i//cut_samples, i%cut_samples, :, :])+1), cmap='gray')
+        if i // cut_samples == 0:
+            ax.imshow(10*np.log10(np.abs(data_HR_cut[i%cut_samples, :, :])+1), cmap='gray')
+        else:
+            ax.imshow(10*np.log10(np.abs(data_LR_cut[i%cut_samples, :, :])+1), cmap='gray')
         ax.axis('off')  # Turn off axis labels
-
     plt.tight_layout()
     plt.savefig(f'{working_dir}/{file_name}_dataExample.png', dpi=300)
 
     # Input data into dataloader
-    data_loader = DataLoader(dataset_cut, num_workers=0, batch_size=args.batch_size, shuffle=True)
-    del dataset
+    data_loader = DataLoader([data_HR, data_LR], num_workers=0, batch_size=args.batch_size, shuffle=True)
+    del data_HR, data_LR
     
     # Training loop
-    for epoch in range(args.epochs):
+    for epoch in range(cfg_epoch): # range(args.epochs):
         train_bar = tqdm(data_loader)
         for batch_idx, (data_HR, data_LR) in enumerate(train_bar):
             # data_HR, data_LR = data_HR.unsqueeze(1), data_LR.unsqueeze(1)

@@ -46,15 +46,15 @@ class CNN_Generator(nn.Module):
 
         self.size_first = size_first
         self.num_filter = num_filter
-        self.input_layer = nn.Linear(
-            latent_dim, num_filter * size_first * size_first, dtype=dtype
-        )
+        self.input_layer = get_convolution_block(
+            size_first, size_first, dtype=dtype
+        ) # * num_filter
 
         # Layers of the models
         self.conv_layers = []
 
         ### CONV BLOCK
-        in_channels = num_filter
+        # in_channels = num_filter
         out_channels = num_filter
 
         for l in range(num_conv_layers):
@@ -117,12 +117,18 @@ class CNN_Generator(nn.Module):
     def forward(self, z):
         if z.dtype != torch.complex64: # and z.shape[-1] == 2:
             z = z.to(dtype=torch.complex64)
-            z = z.mT # 1x256x256 -> 256x256x1
             # z = torch.view_as_complex(z)
 
-        z = self.input_layer(z).view(
-            -1, self.num_filter, self.size_first, self.size_first
-        )
+        # z = self.input_layer(z).view(
+        #     -1, self.size_first, self.size_first
+        # ) # self.num_filter,
+
+        if z.dim() == 3:
+            z = z.unsqueeze(0)
+        
+        if z.dim() == 4 and z.size(1) != self.num_filter:
+            z = z.permute(2,3,0,1)
+        
         z = self.model(z)
         z = self.out_layer(z)
         return z
@@ -150,8 +156,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", "-cfg", type=str, default="Code/logs/SAR_WGAN_28/config.yaml") #"./config/config.yaml")
     parser.add_argument("--device", "-d", type=str, default="cpu")
+    parser.add_argument("--img_size", "-s", type=int, default=16) # 64 # 256
 
-    args = parser.parse_args()
+    args = parser.parse_args()    
+    img_size = args.img_size
 
     ### Load config
     with open(args.config, "r") as ymlfile:
@@ -163,7 +171,8 @@ if __name__ == "__main__":
     generator.to(args.device)
 
     ### Test
-    # img = generator.generate(2)
-    # print("Output shape", img.shape)
+    lr_img = torch.rand(1, img_size, img_size, dtype=torch.complex64).to(args.device)
+    hr_img = generator(lr_img)
+    print("Output shape", hr_img.shape)
 
-    summary(generator, (1, cfg_gen["PARAMETERS"]["latent_dim"], 2), device=args.device)
+    summary(generator, (1, img_size, img_size), device=args.device)

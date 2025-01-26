@@ -1,5 +1,6 @@
 import numpy as np
 from skimage import exposure
+from scipy import fftpack
 
 def sinfunc(t, A, w, p, c):
     return A * np.sin(w * t + p) + c
@@ -87,3 +88,27 @@ def filter_2d(data_fft, radius, type): #boundary): # sigma_s):
         filtered_fft[i] = data_fft[i] * mask
 
     return filtered_fft, mask
+
+def downsample_sar(image, scale_factor):
+    # Compute the 2D FFT of the image
+    fft_image = fftpack.fft2(image)
+    
+    # Shift the zero-frequency component to the center
+    fft_shifted = fftpack.fftshift(fft_image)
+    
+    # Calculate new dimensions
+    batch, rows, cols = fft_shifted.shape
+    new_rows, new_cols = int(rows / scale_factor), int(cols / scale_factor)
+    
+    # Crop the frequency domain
+    crop_rows = slice(rows//2 - new_rows//2, rows//2 + new_rows//2)
+    crop_cols = slice(cols//2 - new_cols//2, cols//2 + new_cols//2)
+    fft_cropped = fft_shifted[:, crop_rows, crop_cols]
+    
+    # Shift back
+    fft_cropped_shifted = fftpack.ifftshift(fft_cropped)
+    
+    # Inverse FFT
+    downsampled_image = np.abs(fftpack.ifft2(fft_cropped_shifted))
+    
+    return downsampled_image

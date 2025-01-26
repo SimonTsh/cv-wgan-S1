@@ -33,7 +33,7 @@ TRAIN:
       entity: "sargan"
 
   LOSS:
-    NAME:
+    NAME: "MSE"
 
   OPTIMIZER_GENERATOR:
     NAME: "Adam"
@@ -86,19 +86,19 @@ GENERATOR:
     "CNN_Generator"
   PARAMETERS:
     # Output channels of the generator
-    output_channels: 256 #1
+    output_channels: 1
     # Latent space dimension
-    latent_dim: 256 #512
+    latent_dim: 256 # 512
     # Number of layers of the DCNN
     num_conv_layers: 8
     # Multiplicator of the channels for the successive convolutional layers
-    channels_multiplicator: 0.8
+    channels_multiplicator: 2 # 0.8
     # Apply upsample convolution every <step_upsample> layers
-    step_upsample: 4 #1
+    step_upsample: 1
     # Number of filter of the initial Convolutional Layer
-    num_filter: 256 # 512
+    num_filter: 16 # 64 # 256 # 512
     # Size of the first 2D image in the first layer
-    size_first: 2
+    size_first: 64 # 2
     kernel_size_conv: 3
     stride_conv: 1
     padding_conv: 1

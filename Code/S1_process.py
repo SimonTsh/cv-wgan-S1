@@ -11,7 +11,7 @@ import cv2
 from scipy import interpolate, optimize
 
 import matplotlib.pyplot as plt
-from utils.patch_process import gaussian, win_patch, filter_2d, grid_patch_extraction, display_img
+from utils.patch_process import gaussian, win_patch, filter_2d, grid_patch_extraction, display_img, downsample_sar
 
 def fit_curve(x, img):
     # coeff = np.polyfit(x, img_cut_abs_log, 2) # quadratic
@@ -32,9 +32,9 @@ def get_3dB_res(x, IPF):
 
     return width_3dB
 
-def downres_generation(img_patch, radius, mtd='rect'):
+def downres_generation(img_patch, radius, method='rect'):
     img_patch_f = np.fft.fftshift(np.fft.fft2(img_patch))
-    img_filter_f, mask_f = filter_2d(img_patch_f, radius, mtd)
+    img_filter_f, mask_f = filter_2d(img_patch_f, radius, method)
     img_filter = np.fft.ifft2(np.fft.ifftshift(img_filter_f))
 
     return img_patch_f, img_filter_f, img_filter
@@ -81,12 +81,23 @@ elif action == 1:
             tiff_image = imread(f'{folder_id}/measurement/{item}') # multi image processing
 
             if patch_making:
-                patch_size = 256
+                patch_size = 16 # 64 # 256
                 overlap_px = 0 # 10 # 50
                 downsample_fac = 4
                 patches_HR = grid_patch_extraction(tiff_image, [patch_size]*2, overlap_px)
                 #win_patch(patches_HR, patch_size, patch_size//2, patch_size//2)
                 patches_HR_f, img_LR_f, patches_LR = downres_generation(patches_HR, patch_size / downsample_fac, 'rect')
+                # patches_LR = downsample_sar(patches_HR, downsample_fac) # 64 -> 16
+                
+                patch_index = 1000; tiny_e = 1 # 1e-15
+                fig, axes = plt.subplots(2,2, dpi=300)
+                axes[0,0].imshow(10*np.log10(np.abs(patches_HR[patch_index])+tiny_e),cmap='gray')
+                axes[0,1].imshow(np.abs(patches_HR_f[patch_index]),cmap='gray')
+                axes[1,1].imshow(np.abs(img_LR_f[patch_index]),cmap='gray')
+                axes[1,0].imshow(10*np.log10(np.abs(patches_LR[patch_index])+tiny_e),cmap='gray')
+                plt.tight_layout()
+                fig.savefig(f'{working_dir}/images/patch_{file_name}.png')
+                
                 with open(f'{working_dir}/{file_name}.pickle', 'wb') as file:
                     pickle.dump([patches_HR, patches_LR], file)
                 print(f'Patches from {file_name} saved as dataset successfully...')
@@ -137,7 +148,7 @@ elif action == 1:
             # pad_size = np.array(img_patch.shape) - np.array(filter.shape)
             # filter_pad = np.pad(filter, ((0, pad_size[0]), (0, pad_size[1])), mode='constant')
             # filter_pad_f = np.fft.fft2(filter_pad)
-            tiny_e = 1 # 1e-15 # 
+            tiny_e = 1 # 1e-15
             upsample_factor = 4
             radius = window_size / upsample_factor #0.6 #[-0.35, 0.35, -0.35, 0.35]
 
