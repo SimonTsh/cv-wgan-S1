@@ -61,9 +61,9 @@ json = requests.get(f"https://catalogue.dataspace.copernicus.eu/odata/v1/Product
 df = pd.DataFrame.from_dict(json["value"])
 
 # To download data product
-username = "simon_tsh@hotmail.com"
-password = "$nfD=s8,^ZtwL;N"
-secret_key = "GJEXO52BMR3FAZSVGI2UWNTXIUZWOSLL"
+username = ""
+password = ""
+secret_key = ""
 
 if df.shape[0] > 0 :
     for i in range(df.shape[0]):

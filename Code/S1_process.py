@@ -81,7 +81,7 @@ elif action == 1:
             tiff_image = imread(f'{folder_id}/measurement/{item}') # multi image processing
 
             if patch_making:
-                patch_size = 16 # 64 # 256
+                patch_size = 256 # 64 # 
                 overlap_px = 0 # 10 # 50
                 downsample_fac = 4
                 patches_HR = grid_patch_extraction(tiff_image, [patch_size]*2, overlap_px)
@@ -98,7 +98,7 @@ elif action == 1:
                 plt.tight_layout()
                 fig.savefig(f'{working_dir}/images/patch_{file_name}.png')
                 
-                with open(f'{working_dir}/{file_name}.pickle', 'wb') as file:
+                with open(f'{working_dir}/{file_name}_{patch_size}.pickle', 'wb') as file:
                     pickle.dump([patches_HR, patches_LR], file)
                 print(f'Patches from {file_name} saved as dataset successfully...')
                 

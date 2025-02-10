@@ -443,7 +443,7 @@ def find_run_path(load_model, toplogdir):
 
 def find_config(run_path):
     print(f"Looking for configs in {run_path}")
-    config_file = [fn for fn in os.listdir(run_path) if ".yaml" in fn]
+    config_file = [fn for fn in os.listdir(run_path) if "config.yaml" in fn]
 
     if len(config_file) == 1:
         config_path = os.path.join(run_path, config_file[0])

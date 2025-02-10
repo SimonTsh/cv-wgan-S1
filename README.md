@@ -17,37 +17,38 @@ source venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-3- Execute the sampling and interpolation script
+3- Download Sentinel-1 data from Copernicus (adjust start_date, end_date as needed)
 
 ```
-python test_sample.py --load_model WGAN_fft_MNIST_16 --transform inverse_fft_contrast_enhanced
-python test_sample.py --load_model WGAN_fft_FashionMNIST_2 --transform inverse_fft_contrast_enhanced
-python test_sample.py --load_model SAR_WGAN_28 
+python S1_download.py
 ```
 
-4- Computes the FIDs
+4- Unzip, patch up and downsample to create input data (toggle action, patch_making for different needs)
 
 ```
-python utils/fid.py  --load_model WGAN_fft_MNIST_16 --postprocess ifft --fold train
-python utils/fid.py  --load_model WGAN_fft_MNIST_16 --postprocess ifft --fold test
-python utils/fid.py  --load_model WGAN_fft_FashionMNIST_2 --postprocess ifft --fold train
-python utils/fid.py  --load_model WGAN_fft_FashionMNIST_2 --postprocess ifft --fold test
-python utils/fid.py  --load_model SAR_WGAN_28 --postprocess "None" --fold train
-python utils/fid.py  --load_model SAR_WGAN_28 --postprocess "None" --fold test
+python S1_process.py
+```
+
+5- Train the model with new SAR data
+
+```
+python train.py --epochs 200
+```
+
+6- Execute the sampling and interpolation script
+
+```
+python test_sample_S1.py --load_model Sentinel-1 
+```
+
+7- Computes the FIDs
+
+```
+python utils/fid.py  --load_model Sentinel-1 --postprocess "None" --fold train
+python utils/fid.py  --load_model Sentinel-1 --postprocess "None" --fold test
 ```
 
 # Example interpolations
-
-## On MNIST and FashioMNIST, in the Fourier domain
-
-**Left** Interpolation in the latent space given three independent latent vectors $z_0, z_1, z_2$. The generated samples associated with $z_0$, $z_1$ and $z_2$ are respectively in the top left, top right and bottom left corners. 
-
-**Right** Interpolation in the latent space by applying a rotation of a random latent vector $z_0$. 
-
-For all these representations, the Fourier representation is transformed with an inverse Fourier transform in the image domain for easier interpretation.
-
-![alt text](https://github.com/jeremyfix/complex-wgan/blob/main/images/Fig3_left.png?raw=true)
-![alt text](https://github.com/jeremyfix/complex-wgan/blob/main/images/Fig3_right.png?raw=true)
 
 ## On SAR
 

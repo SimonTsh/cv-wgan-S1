@@ -2,6 +2,7 @@ import torch
 import os
 from torchvision.utils import make_grid, save_image
 import math
+import numpy as np
 from . import logs
 
 
@@ -149,8 +150,9 @@ class EvaluationGenerator:
             img = make_grid(generated_img, nrow=N, scale_each=True)
             self._save_image(img, FIGURE_NAME)
         else:
-            generated_img = self.generator.from_noise(latent_points).cpu()
+            generated_img = self.generator.from_noise(latent_points).cpu() # 64 x 512
             generated_img = (
+                # 10*np.log10(abs(generated_img.squeeze()))
                 logs.hsv_colorscale(generated_img).squeeze()
                 if generated_img.dtype == torch.complex64
                 else generated_img

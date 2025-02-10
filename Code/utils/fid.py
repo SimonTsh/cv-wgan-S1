@@ -191,6 +191,11 @@ def test(dataset, gen, z_dim, device):
 
     for iax, axi in enumerate(axes[1]):
         X = Xgen[iax]
+        # plt.imshow(10*np.log10(Xgen[iax].squeeze().abs()),cmap='gray')
+        # plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.5)
+        # plt.colorbar()
+        # plt.savefig("Code/logs/test_S1_image.png", dpi=300)
+        # plt.close()
 
         # check generated patch statistics
         fig1, ax = plt.subplots(1,2)
@@ -198,8 +203,9 @@ def test(dataset, gen, z_dim, device):
         X = X.abs()
         hist, bin_edges = np.histogram(X.squeeze().flatten()) # hist
         print(f'hist sum = {hist.sum()}, {np.sum(hist * np.diff(bin_edges))}')
-        ax[0].imshow(np.abs(X_f),cmap='gray')
-        ax[0].set_title('fft output')
+        # ax[0].imshow(np.abs(X_f),cmap='gray')
+        ax[0].imshow(post_process_sample(X), cmap='gray')
+        ax[0].set_title('image output')
         ax[1].hist(X.squeeze().flatten(),bins='auto')
         ax[1].set_title('hist output')
         plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.5)
@@ -224,7 +230,7 @@ def test(dataset, gen, z_dim, device):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--load_model", "-lm", type=str, default="SAR_WGAN_28")#, required=True)
+    parser.add_argument("--load_model", "-lm", type=str, default="Sentinel-1")#, required=True) # SAR_WGAN_28 # Sentinel-1
     parser.add_argument("--postprocess", "-p", choices=["ifft", "None"], type=str, default="None")#, required=True)
     parser.add_argument("--test", "-t", action="store_true", default="store_true")
     parser.add_argument("--fold", "-f", choices=["train", "test"], default="test")#, required=True)
